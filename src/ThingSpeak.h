@@ -47,6 +47,7 @@
 
     #include "math.h"
     #include "application.h"
+    #include <queue>
     #ifdef PARTICLE_PHOTONELECTRON
         extern char* dtoa(double val, unsigned char prec, char *sout);
         // On spark photon, There is no itoa, so map to ltoa.
@@ -100,7 +101,8 @@
     #define TS_ERR_BAD_RESPONSE        -303    // Unable to parse response
     #define TS_ERR_TIMEOUT             -304    // Timeout waiting for server to respond
     #define TS_ERR_NOT_INSERTED        -401    // Point was not inserted (most probable cause is the rate limit of once every 15 seconds)
-
+    #define TS_ERR_EMPTY_BUFFER        -402    // No messages to send.
+    #define TS_ERR_TOO_SOON            -403    // No message sent because not enough time has elapsed since last write.
     
     // variables to store the values from the readMultipleFields functionality
     typedef struct feedRecord
@@ -570,7 +572,101 @@
 
             return writeRaw(channelNumber, postMessage, writeAPIKey);
         }
+        
+        
+        /*
+        Function: writeFieldsBuffered
+        
+        Summary:
+        Write a multi-field update into a queue to be written next time processBuffer is called.
+        
+        Returns:
+        200 - successful.
+        -210 - setField() was not called before writeFields()
+        
+        
+        Notes:
+        Call setField(), setLatitude(), setLongitude(), setElevation() and/or setStatus() and then call writeFieldsBuffered()
+        */
+        int writeFieldsBuffered()
+        {
+            String postMessage = "";
+            bool success = createPostMessage(postMessage);
 
+            if(success)
+            {
+                // setField was not called before writeFields
+                return TS_ERR_SETFIELD_NOT_CALLED;
+            }
+
+            writeBuffer.push(postMessage);
+            return TS_OK_SUCCESS;
+        }
+        
+        
+        /*
+        Function: processBuffer
+        
+        Summary:
+        Check if 15 seconds has elapsed. If so, send the next message in the queue to ThingSpeak.
+        
+        Parameters:
+        now - Current time in seconds.
+        channelNumber - Channel number
+        writeAPIKey - Write API key associated with the channel.  *If you share code with others, do _not_ share this key*
+        
+        Returns:
+        200 - successful.
+        404 - Incorrect API key (or invalid ThingSpeak server address)
+        -101 - Value is out of range or string is too long (> 255 characters)
+        -201 - Invalid field number specified
+        -210 - setField() was not called before writeFields()
+        -301 - Failed to connect to ThingSpeak
+        -302 - Unexpected failure during write to ThingSpeak
+        -303 - Unable to parse response
+        -304 - Timeout waiting for server to respond
+        -401 - Point was not inserted (most probable cause is the rate limit of once every 15 seconds)
+        -402 - No messages to send (buffer empty).
+        -403 - No message sent because not enough time has elapsed since last write.
+        
+        */
+        int processBuffer(time_t now, unsigned long channelNumber, const char * writeAPIKey)
+        {
+            if (writeBuffer.empty()) {
+                return TS_ERR_EMPTY_BUFFER;
+            }
+
+            if ((now - lastWrite) <= 15) {
+                return TS_ERR_TOO_SOON;
+            }
+
+            String postMessage = writeBuffer.front();
+            int status = writeRaw(channelNumber, postMessage, writeAPIKey);
+            if (status == TS_OK_SUCCESS) {
+                writeBuffer.pop();
+                lastWrite = now;
+            } else {
+                // Write failed, wait 2 seconds before trying again.
+                lastWrite = now - 13;
+            }
+
+            return status;
+        }
+        
+        
+        /*
+        Function: bufferSize
+        
+        Summary:
+        Return the number of messages remaining in the queue.
+        
+        Returns:
+        The number of messages in the queue.
+
+        */
+        auto bufferSize() {
+            return writeBuffer.size();
+        }
         
         /*
         Function: writeRaw
@@ -1511,6 +1607,9 @@
         String nextWriteTweet;
         String nextWriteCreatedAt;
         feed lastFeed;
+
+        time_t lastWrite = 0;
+        std::queue<String> writeBuffer;
 
         bool connectThingSpeak()
         {
