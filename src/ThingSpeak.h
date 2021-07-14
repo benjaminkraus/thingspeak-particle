@@ -559,102 +559,10 @@
         */
         int writeFields(unsigned long channelNumber, const char * writeAPIKey)
         {
-            String postMessage = String("");
-            bool fFirstItem = true;
-            for(size_t iField = 0; iField < 8; iField++)
-            {
-                if(this->nextWriteField[iField].length() > 0)
-                {
-                    if(!fFirstItem)
-                    {
-                        postMessage = postMessage + String("&");
-                    }
-                    postMessage = postMessage + String("field") + String(iField + 1) + String("=") + escapeUrl(this->nextWriteField[iField]);
-                    fFirstItem = false;
-                    this->nextWriteField[iField] = "";
-                }
-            }
+            String postMessage = "";
+            bool success = createPostMessage(postMessage);
 
-            if(!isnan(nextWriteLatitude))
-            {
-                if(!fFirstItem)
-                {
-                    postMessage = postMessage + String("&");
-                }
-                postMessage = postMessage + String("lat=") + String(this->nextWriteLatitude);
-                fFirstItem = false;
-                this->nextWriteLatitude = NAN;
-            }
-
-            if(!isnan(this->nextWriteLongitude))
-            {
-                if(!fFirstItem)
-                {
-                    postMessage = postMessage + String("&");
-                }
-                postMessage = postMessage + String("long=") + String(this->nextWriteLongitude);
-                fFirstItem = false;
-                this->nextWriteLongitude = NAN;
-            }
-
-
-            if(!isnan(this->nextWriteElevation))
-            {
-                if(!fFirstItem)
-                {
-                    postMessage = postMessage + String("&");
-                }
-                postMessage = postMessage + String("elevation=") + String(this->nextWriteElevation);
-                fFirstItem = false;
-                this->nextWriteElevation = NAN;
-            }
-            
-            if(this->nextWriteStatus.length() > 0)
-            {
-                if(!fFirstItem)
-                {
-                    postMessage = postMessage + String("&");
-                }
-                postMessage = postMessage + String("status=") + escapeUrl(this->nextWriteStatus);
-                fFirstItem = false;
-                this->nextWriteStatus = "";
-            }
-            
-            if(this->nextWriteTwitter.length() > 0)
-            {
-                if(!fFirstItem)
-                {
-                    postMessage = postMessage + String("&");
-                }
-                postMessage = postMessage + String("twitter=") + escapeUrl(this->nextWriteTwitter);
-                fFirstItem = false;
-                this->nextWriteTwitter = "";
-            }
-            
-            if(this->nextWriteTweet.length() > 0)
-            {
-                if(!fFirstItem)
-                {
-                    postMessage = postMessage + String("&");
-                }
-                postMessage = postMessage + String("tweet=") + escapeUrl(this->nextWriteTweet);
-                fFirstItem = false;
-                this->nextWriteTweet = "";
-            }
-            
-            if(this->nextWriteCreatedAt.length() > 0)
-            {
-                if(!fFirstItem)
-                {
-                    postMessage = postMessage + String("&");
-                }
-                postMessage = postMessage + String("created_at=") + String(this->nextWriteCreatedAt);
-                fFirstItem = false;
-                this->nextWriteCreatedAt = "";
-            }
-            
-            
-            if(fFirstItem)
+            if(success)
             {
                 // setField was not called before writeFields
                 return TS_ERR_SETFIELD_NOT_CALLED;
@@ -1354,6 +1262,104 @@
         
         
     private:
+
+        // Create post message string
+        bool createPostMessage(String &postMessage){
+            bool fFirstItem = true;
+            for(size_t iField = 0; iField < 8; iField++)
+            {
+                if(this->nextWriteField[iField].length() > 0)
+                {
+                    if(!fFirstItem)
+                    {
+                        postMessage = postMessage + String("&");
+                    }
+                    postMessage = postMessage + String("field") + String(iField + 1) + String("=") + escapeUrl(this->nextWriteField[iField]);
+                    fFirstItem = false;
+                    this->nextWriteField[iField] = "";
+                }
+            }
+
+            if(!isnan(nextWriteLatitude))
+            {
+                if(!fFirstItem)
+                {
+                    postMessage = postMessage + String("&");
+                }
+                postMessage = postMessage + String("lat=") + String(this->nextWriteLatitude);
+                fFirstItem = false;
+                this->nextWriteLatitude = NAN;
+            }
+
+            if(!isnan(this->nextWriteLongitude))
+            {
+                if(!fFirstItem)
+                {
+                    postMessage = postMessage + String("&");
+                }
+                postMessage = postMessage + String("long=") + String(this->nextWriteLongitude);
+                fFirstItem = false;
+                this->nextWriteLongitude = NAN;
+            }
+
+
+            if(!isnan(this->nextWriteElevation))
+            {
+                if(!fFirstItem)
+                {
+                    postMessage = postMessage + String("&");
+                }
+                postMessage = postMessage + String("elevation=") + String(this->nextWriteElevation);
+                fFirstItem = false;
+                this->nextWriteElevation = NAN;
+            }
+            
+            if(this->nextWriteStatus.length() > 0)
+            {
+                if(!fFirstItem)
+                {
+                    postMessage = postMessage + String("&");
+                }
+                postMessage = postMessage + String("status=") + escapeUrl(this->nextWriteStatus);
+                fFirstItem = false;
+                this->nextWriteStatus = "";
+            }
+            
+            if(this->nextWriteTwitter.length() > 0)
+            {
+                if(!fFirstItem)
+                {
+                    postMessage = postMessage + String("&");
+                }
+                postMessage = postMessage + String("twitter=") + escapeUrl(this->nextWriteTwitter);
+                fFirstItem = false;
+                this->nextWriteTwitter = "";
+            }
+            
+            if(this->nextWriteTweet.length() > 0)
+            {
+                if(!fFirstItem)
+                {
+                    postMessage = postMessage + String("&");
+                }
+                postMessage = postMessage + String("tweet=") + escapeUrl(this->nextWriteTweet);
+                fFirstItem = false;
+                this->nextWriteTweet = "";
+            }
+            
+            if(this->nextWriteCreatedAt.length() > 0)
+            {
+                if(!fFirstItem)
+                {
+                    postMessage = postMessage + String("&");
+                }
+                postMessage = postMessage + String("created_at=") + String(this->nextWriteCreatedAt);
+                fFirstItem = false;
+                this->nextWriteCreatedAt = "";
+            }
+            
+            return fFirstItem;
+        }
         
         // Creates a new String
         String escapeUrl(String message){
